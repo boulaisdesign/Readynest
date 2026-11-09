@@ -1,8 +1,0 @@
-# Copy to .dev.vars for `npm run dev` (never commit .dev.vars).
-CLIENT_ID=
-CLIENT_SECRET=
-REFRESH_TOKEN=
-PROJECT_ID=
-DEVICE_ID=
-ALLOWED_EMAILS=tenant1@gmail.com,tenant2@gmail.com
-SESSION_SECRET=

@@ -1,9 +1,9 @@
 import { PAGE } from "./page.js";
+import { verifyGoogleToken, makeSessionCookie, clearSessionCookie, sessionEmail } from "./auth.js";
+import { outdoor } from "./weather.js";
 
 const API = "https://smartdevicemanagement.googleapis.com/v1";
 const T = "sdm.devices.traits.";
-const MAX_BAD_PINS = 10; // wrong PINs allowed per lockout window
-const LOCKOUT_MINUTES = 15;
 
 const dev = (env) => `${API}/enterprises/${env.PROJECT_ID}/devices/${env.DEVICE_ID}`;
 
@@ -47,20 +47,13 @@ async function setHeat(env, t, c) {
   if (!r.ok) throw new Error("Thermostat refused the change");
 }
 
-const json = (o, s = 200) =>
+const json = (o, s = 200, extra = {}) =>
   new Response(JSON.stringify(o), {
     status: s,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra },
   });
 
-// Constant-time string compare so the PIN can't be guessed by timing.
-function sameText(a, b) {
-  const x = new TextEncoder().encode(String(a ?? ""));
-  const y = new TextEncoder().encode(String(b ?? ""));
-  let diff = x.length ^ y.length;
-  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
-  return diff === 0;
-}
+const ROUTES = ["/api/login", "/api/logout", "/api/status", "/api/set"];
 
 export const clampHalf = (v, min, max) => Math.min(max, Math.max(min, Math.round(v * 2) / 2));
 
@@ -69,28 +62,41 @@ export default {
     const url = new URL(req.url);
     if (req.method === "GET") {
       if (url.pathname !== "/") return new Response("Not found", { status: 404 });
-      return new Response(PAGE, {
-        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      const page = PAGE.replace("__GOOGLE_CLIENT_ID__", String(env.SIGNIN_CLIENT_ID || env.CLIENT_ID || "").replace(/[^\w.-]/g, ""));
+      return new Response(page, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+          "Referrer-Policy": "no-referrer-when-downgrade", // Google's button needs the origin
+          "X-Frame-Options": "DENY",
+        },
       });
     }
-    if (req.method !== "POST" || !["/api/status", "/api/set"].includes(url.pathname)) {
-      return json({ error: "Not found" }, 404);
-    }
+    if (req.method !== "POST" || !ROUTES.includes(url.pathname)) return json({ error: "Not found" }, 404);
 
-    // Slow down PIN guessing: too many wrong PINs locks the page for a while.
-    const bad = Number(await env.STATE.get("badPins")) || 0;
-    if (bad >= MAX_BAD_PINS) return json({ error: "Too many wrong PINs. Try again later." }, 429);
+    // Only accept requests made by this page (blocks other sites posting with the tenant's cookie).
+    const origin = req.headers.get("Origin");
+    if (origin && origin !== url.origin) return json({ error: "Not allowed" }, 403);
 
     const body = await req.json().catch(() => ({}));
-    if (!sameText(body.pin, env.PIN)) {
-      await env.STATE.put("badPins", String(bad + 1), { expirationTtl: LOCKOUT_MINUTES * 60 });
-      return json({ error: "Wrong PIN" }, 401);
+
+    if (url.pathname === "/api/login") {
+      try {
+        const email = await verifyGoogleToken(body.credential, env);
+        return json({ email }, 200, { "Set-Cookie": await makeSessionCookie(email, env) });
+      } catch (e) {
+        return json({ error: e.message }, 401);
+      }
     }
+    if (url.pathname === "/api/logout") return json({ ok: true }, 200, { "Set-Cookie": clearSessionCookie });
+
+    const email = await sessionEmail(req, env).catch(() => null);
+    if (!email) return json({ error: "Please sign in" }, 401, { "Set-Cookie": clearSessionCookie });
 
     const min = Number(env.MIN_C), max = Number(env.MAX_C);
     try {
       const t = await token(env);
-      const s = await status(env, t);
+      const [s, weather] = await Promise.all([status(env, t), outdoor(env)]);
 
       if (url.pathname === "/api/set") {
         if (s.mode !== "HEAT") return json({ error: "Heating is off right now" }, 409);
@@ -107,7 +113,7 @@ export default {
       }
 
       const until = await env.STATE.get("revertAt");
-      return json({ ...s, until: until ? Number(until) : null, min, max });
+      return json({ ...s, until: until ? Number(until) : null, min, max, email, weather, place: env.PLACE || "" });
     } catch (e) {
       return json({ error: e.message }, 502);
     }

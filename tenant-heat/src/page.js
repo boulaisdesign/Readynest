@@ -62,12 +62,11 @@ header{display:flex;justify-content:space-between;align-items:flex-start}
 .opt.sel{background:var(--ink);color:#fff}
 .opt.sel .l{color:rgba(255,255,255,.7)}
 .opt:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-/* PIN screen */
-.pin{display:flex;align-items:flex-end;gap:14px}
-.pin input{flex:1;min-width:0;width:100%;border:0;border-bottom:3px solid var(--line);border-radius:0;background:transparent;
-  font:700 64px Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--ink);padding:0 0 6px;outline:none}
-.pin input::placeholder{color:rgba(22,22,22,.18)}
-.go{flex:0 0 56px;height:56px;border-radius:50%;border:0;background:var(--ink);color:#fff;font-size:22px;cursor:pointer;margin-bottom:8px}
+/* Sign-in screen */
+.signin{min-height:44px;margin-top:18px}
+.who{font-size:12px;color:var(--ink-3);margin-top:14px}
+.out{font-size:13px;color:var(--ink-2);margin:2px 0 0;min-height:16px}
+.range small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:-24px}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -78,18 +77,18 @@ header{display:flex;justify-content:space-between;align-items:flex-start}
 <main class="screen" id="lock">
   <header><div><p class="when" data-now></p><p class="where">Suite heat</p></div></header>
   <div class="spacer"></div>
-  <form class="pin" onsubmit="go(event)">
-    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN">
-    <button class="go" aria-label="Unlock">&rarr;</button>
-  </form>
-  <p class="state" style="margin-top:14px">Enter your PIN</p>
+  <div class="temp"><div class="big"><b>Hi</b></div></div>
+  <div class="rule"></div>
+  <p class="state">Sign in to change the heat</p>
+  <p class="note">Use the Google account your landlord added.</p>
+  <div class="signin" id="gbtn"></div>
   <p class="note err" id="msg1"></p>
 </main>
 
 <main class="screen" id="main" hidden>
   <header>
-    <div><p class="when" data-now></p><p class="where">Suite heat</p></div>
-    <button class="lockbtn" id="out" aria-label="Lock">
+    <div><p class="when" data-now></p><p class="where" id="place">Suite heat</p><p class="out" id="outside"></p></div>
+    <button class="lockbtn" id="out" aria-label="Sign out" title="Sign out">
       <svg width="28" height="20" viewBox="0 0 28 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2h24M2 10h24M2 18h24"/></svg>
     </button>
   </header>
@@ -97,19 +96,21 @@ header{display:flex;justify-content:space-between;align-items:flex-start}
 
   <div class="temp">
     <div class="big" aria-label="Room temperature"><b id="room">&ndash;</b><span>&deg;C</span></div>
-    <div class="range"><span>&uarr;<span id="max">23</span>&deg;C</span><span>&darr;<span id="min">19</span>&deg;C</span></div>
+    <div class="range" id="range" hidden><small>Outside</small><span>&uarr;<span id="hi"></span>&deg;C</span><span>&darr;<span id="lo"></span>&deg;C</span></div>
   </div>
   <div class="rule"></div>
   <p class="state" id="state">Loading&hellip;</p>
   <p class="note" id="note"></p>
 
   <div class="strip" id="strip" role="radiogroup" aria-label="Heat setting"></div>
+  <p class="who" id="who"></p>
 </main>
 
 <script>
-var pin = ""; try { pin = localStorage.getItem("pin") || ""; } catch (e) {}
+var CLIENT_ID = "__GOOGLE_CLIENT_ID__", signedIn = false;
 var S = { min: 19, max: 23, set: null }, shown = null, timer = null;
 var $ = function (id) { return document.getElementById(id); };
+function r0(v) { return String(Math.round(v)).replace("-", "\u2212"); }
 function fmt(v) { return (Math.round(v * 10) / 10).toFixed(1); }
 function deg(v) { return (v % 1 ? fmt(v) : String(v)) + "\\u00b0"; }
 
@@ -133,7 +134,6 @@ function buildStrip() {
       '<span class="v">' + deg(v) + 'C</span>' + FLAME + '<span class="l">' + (label || "&nbsp;") + '</span></button>';
   }
   $("strip").innerHTML = html;
-  $("min").textContent = S.min; $("max").textContent = S.max;
 }
 
 function draw(v) {
@@ -157,6 +157,12 @@ function render(j) {
   if (first) buildStrip();
   $("room").textContent = j.room == null ? "\\u2013" : Math.round(j.room);
   if (!timer) draw(j.set);
+  var w = j.weather;
+  $("place").textContent = j.place ? j.place : "Suite heat";
+  $("outside").textContent = w && w.now != null ? "Outside " + r0(w.now) + "\u00b0C" + (w.text ? ", " + w.text.toLowerCase() : "") : "";
+  if (w && w.high != null) { $("hi").textContent = r0(w.high); $("lo").textContent = r0(w.low); $("range").hidden = false; }
+  else $("range").hidden = true;
+  $("who").textContent = "Signed in as " + j.email;
   var n = $("note"); n.classList.remove("err");
   n.textContent = j.until
     ? "Back to normal at " + new Date(j.until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()
@@ -167,14 +173,13 @@ function showLock(text) { $("lock").hidden = false; $("main").hidden = true; $("
 function showErr(text) { var n = $("note"); n.textContent = text; n.classList.add("err"); }
 
 function call(path, extra) {
-  var body = { pin: pin }; for (var k in extra || {}) body[k] = extra[k];
+  var body = {}; for (var k in extra || {}) body[k] = extra[k];
   return fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
     .then(function (r) { return r.json().catch(function () { return { error: "Something went wrong" }; }).then(function (j) { return [r, j]; }); })
     .then(function (rj) {
       var r = rj[0], j = rj[1];
-      if (r.status === 401 || r.status === 429) { try { localStorage.removeItem("pin"); } catch (e) {} showLock(j.error); return; }
-      $("lock").hidden = true; $("main").hidden = false;
-      try { localStorage.setItem("pin", pin); } catch (e) {}
+      if (r.status === 401) { signedIn = false; showLock(extra ? j.error : ""); return; }
+      signedIn = true; $("lock").hidden = true; $("main").hidden = false;
       if (j.error) { if (S.set !== null) draw(S.set); showErr(j.error); return; }
       render(j);
     })
@@ -199,12 +204,28 @@ $("strip").addEventListener("keydown", function (e) {
   if (e.key === "ArrowLeft" || e.key === "ArrowDown") { choose(shown - 0.5); e.preventDefault(); }
   var s = document.querySelector(".opt.sel"); if (s) s.focus();
 });
-$("out").onclick = function () { pin = ""; try { localStorage.removeItem("pin"); } catch (e) {} $("pin").value = ""; showLock(); };
+$("out").onclick = function () {
+  fetch("/api/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+    .finally(function () { signedIn = false; if (window.google) google.accounts.id.disableAutoSelect(); showLock(); });
+};
 
-function go(e) { e.preventDefault(); pin = $("pin").value.trim(); if (pin) call("/api/status"); }
-if (pin) call("/api/status"); else showLock();
+// "Sign in with Google": Google hands the page a signed token; the server checks it and sets a session cookie.
+function gsiReady() {
+  if (!CLIENT_ID || CLIENT_ID.indexOf("__") === 0) { $("msg1").textContent = "Sign-in isn't set up yet."; return; }
+  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: onGoogle, auto_select: true, itp_support: true });
+  google.accounts.id.renderButton($("gbtn"), { theme: "filled_black", shape: "pill", size: "large", text: "signin_with" });
+}
+function onGoogle(res) {
+  fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credential: res.credential }) })
+    .then(function (r) { return r.json(); })
+    .then(function (j) { if (j.error) { $("msg1").textContent = j.error; return; } $("msg1").textContent = ""; call("/api/status"); })
+    .catch(function () { $("msg1").textContent = "No connection. Try again."; });
+}
+
+call("/api/status");
 // Keep the reading fresh while the page is open.
-setInterval(function () { if (pin && !$("main").hidden && !document.hidden && !timer) call("/api/status"); }, 60000);
+setInterval(function () { if (signedIn && !document.hidden && !timer) call("/api/status"); }, 60000);
 </script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="gsiReady()"></script>
 </body>
 </html>`;

@@ -7,6 +7,15 @@ compatibility_date = "2026-11-01"
 MIN_C = "19"
 MAX_C = "23"
 BOOST_HOURS = "2"
+# For the outdoor weather (Open-Meteo, no key needed). Find yours at https://www.latlong.net
+PLACE = "Suite heat"
+LAT = ""
+LON = ""
+
+# Secrets (set with `npx wrangler secret put NAME`, never put them here):
+#   CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN, PROJECT_ID, DEVICE_ID   - Google / Nest
+#   ALLOWED_EMAILS   - tenants' Google emails, comma separated
+#   SESSION_SECRET   - any long random text (32+ characters)
 
 # Small store for the boost timer. Create it with:
 #   npx wrangler kv namespace create STATE

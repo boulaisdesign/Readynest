@@ -1,0 +1,7 @@
+# Copy to .dev.vars for `npm run dev` (never commit .dev.vars).
+CLIENT_ID=
+CLIENT_SECRET=
+REFRESH_TOKEN=
+PROJECT_ID=
+DEVICE_ID=
+PIN=

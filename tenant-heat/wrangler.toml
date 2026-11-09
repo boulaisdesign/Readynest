@@ -1,0 +1,20 @@
+name = "tenant-heat"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# Limits the tenants can't go outside, and how long a change lasts.
+[vars]
+MIN_C = "19"
+MAX_C = "23"
+BOOST_HOURS = "2"
+
+# Small store for the boost timer. Create it with:
+#   npx wrangler kv namespace create STATE
+# then paste the id it prints here.
+[[kv_namespaces]]
+binding = "STATE"
+id = "PASTE_KV_ID"
+
+# Checks every 5 minutes whether a boost has run out.
+[triggers]
+crons = ["*/5 * * * *"]

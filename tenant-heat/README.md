@@ -20,7 +20,7 @@ The full setup walkthrough is in the "Tenant Heat Web Page" doc. Short version:
 
 ## Using it
 
-- Drag the dial or tap **Cooler / Warmer**. Steps are 0.5 °C and stay inside the limits.
+- Tap a setting in the strip at the bottom (or use arrow keys). Steps are 0.5 °C and stay inside the limits.
 - The pill shows when the setting goes back to normal. A timer checks every 5 minutes.
 - Changes are only accepted while the thermostat is in **Heat** (not Off, Cool or Eco).
 - 10 wrong PINs locks the page for 15 minutes. Change the `PIN` secret to lock tenants out.

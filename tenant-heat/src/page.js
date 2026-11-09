@@ -5,177 +5,166 @@ export const PAGE = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1d2a30">
+<meta name="theme-color" content="#f7f4f1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Heat">
 <title>Heat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#fff; --ink-2:rgba(255,255,255,.72); --ink-3:rgba(255,255,255,.45);
-  --glass:rgba(255,255,255,.12); --glass-2:rgba(255,255,255,.2); --edge:rgba(255,255,255,.28);
+  --bg:#f7f4f1; --ink:#161616; --ink-2:#5c5a57; --ink-3:#9a9792; --line:#161616;
   --warm:1; /* 0..1, how far the setpoint sits between the limits; drives the glow */
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
 body{
-  font-family:"Inter Tight",system-ui,-apple-system,sans-serif;color:var(--ink);
-  background:#1d2a30;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;overflow-x:hidden;
-  padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));
+  font-family:Inter,system-ui,-apple-system,"Helvetica Neue",sans-serif;color:var(--ink);background:var(--bg);
+  min-height:100dvh;overflow-x:hidden;display:flex;justify-content:center;
 }
-/* Blurred backdrop: dusk teal sky with a warm glow that grows with the setpoint */
-.sky{position:fixed;inset:-20%;z-index:-1;filter:blur(40px);
+.screen{position:relative;width:100%;max-width:440px;min-height:100dvh;display:flex;flex-direction:column;
+  padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom))}
+/* Warm glow, like heat haze, stronger as the setting goes up */
+.glow{position:fixed;inset:0;z-index:-2;pointer-events:none;
   background:
-    radial-gradient(45% 35% at 55% 62%, rgba(255,110,40,calc(.35 + .55*var(--warm))) 0%, transparent 70%),
-    radial-gradient(60% 45% at 30% 75%, rgba(255,170,70,calc(.15 + .45*var(--warm))) 0%, transparent 70%),
-    radial-gradient(70% 40% at 70% 90%, rgba(230,120,140,.35) 0%, transparent 70%),
-    linear-gradient(180deg,#3d6670 0%,#5b8a8f 35%,#7f6a66 65%,#2a2523 100%);
-  transition:background .6s ease;
-}
-.card{
-  width:min(380px,100%);border-radius:40px;padding:26px 22px 22px;
-  background:var(--glass);border:1px solid var(--edge);
-  backdrop-filter:blur(28px) saturate(140%);-webkit-backdrop-filter:blur(28px) saturate(140%);
-  box-shadow:0 30px 60px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.25);
-}
-h1{font-weight:400;font-size:26px;letter-spacing:-.01em;margin:0}
-.sub{color:var(--ink-2);font-size:15px;margin:4px 0 0;min-height:20px}
-.dial{position:relative;margin:14px auto 0;width:100%;max-width:320px;aspect-ratio:300/250;touch-action:none;user-select:none}
-.dial svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.track{fill:none;stroke:rgba(255,255,255,.22);stroke-width:4;stroke-linecap:round}
-.fill{fill:none;stroke:url(#g);stroke-width:5;stroke-linecap:round}
-.dot{fill:rgba(255,255,255,.5)} .dot.on{fill:#fff}
-.knob{fill:rgba(255,255,255,.25);stroke:#fff;stroke-width:3;cursor:grab}
-.lim{fill:var(--ink-2);font:400 13px "Inter Tight",system-ui,sans-serif}
-.hub{position:absolute;left:50%;top:60%;transform:translate(-50%,-50%);
-  width:42%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;text-align:center;
-  background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.38),rgba(255,255,255,.12) 70%);
-  border:1px solid var(--edge);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  box-shadow:0 0 60px rgba(255,170,90,calc(.15 + .35*var(--warm)))}
-.num{font-weight:200;font-size:56px;line-height:1;letter-spacing:-.03em}
-.num small{font-size:20px;font-weight:300;vertical-align:top;margin-left:2px;position:relative;top:6px}
-.cap{font-size:12px;color:var(--ink-2);margin-top:4px;letter-spacing:.04em;text-transform:uppercase}
-.pill{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;
-  background:var(--glass);border:1px solid var(--edge);font-size:14px;color:var(--ink)}
-.status{display:flex;justify-content:center;margin:6px 0 18px;min-height:40px}
-.status .pill:empty{display:none}
-.row{display:flex;gap:12px}
-.btn{flex:1;display:flex;align-items:center;gap:12px;padding:8px 18px 8px 8px;border-radius:999px;
-  background:var(--glass-2);border:1px solid var(--edge);color:var(--ink);font:inherit;font-size:16px;cursor:pointer}
-.btn:active{transform:scale(.97)} .btn:disabled{opacity:.45}
-.btn i{width:40px;height:40px;border-radius:50%;background:#fff;color:#2a2523;display:grid;place-items:center;
-  font-style:normal;font-size:22px;font-weight:400;line-height:1}
-#msg{text-align:center;color:#ffd7c2;font-size:14px;min-height:20px;margin-top:14px}
+    radial-gradient(42% 30% at 72% 22%, rgba(240,78,40,calc(.45 + .5*var(--warm))) 0%, transparent 100%),
+    radial-gradient(48% 34% at 42% 32%, rgba(247,150,40,calc(.35 + .5*var(--warm))) 0%, transparent 100%),
+    radial-gradient(60% 40% at 55% 30%, rgba(250,190,150,.55) 0%, transparent 100%);
+  filter:blur(30px);transition:background .6s ease}
+/* Film grain over the glow */
+.grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.22;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+header{display:flex;justify-content:space-between;align-items:flex-start}
+.when{font-size:13px;color:var(--ink-2);margin:0}
+.where{font-size:14px;font-weight:600;margin:2px 0 0}
+.lockbtn{border:0;background:none;padding:6px;margin:-6px;cursor:pointer;color:var(--ink)}
+.lockbtn svg{display:block}
+.spacer{flex:1;min-height:180px}
+.temp{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.big{display:flex;align-items:flex-end;line-height:.8}
+.big b{font-weight:700;font-size:clamp(110px,34vw,150px);letter-spacing:-.06em}
+.big span{font-weight:300;font-size:30px;margin:0 0 4px 10px}
+.range{display:flex;flex-direction:column;justify-content:space-between;gap:30px;font-size:15px;color:var(--ink-2);padding-bottom:4px;text-align:right}
+.rule{height:3px;background:var(--line);margin:16px 0 12px;border-radius:2px}
+.state{font-size:26px;font-weight:300;letter-spacing:-.01em;margin:0}
+.note{font-size:14px;color:var(--ink-2);margin:6px 0 0;min-height:18px}
+.err{color:#c2410c}
+/* Strip of settings, like an hourly forecast */
+.strip{display:flex;gap:4px;overflow-x:auto;scroll-snap-type:x proximity;margin:26px -20px 0;padding:4px 20px 8px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.opt{flex:0 0 54px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:10px 0 12px;border:0;border-radius:16px;background:none;color:var(--ink);font:inherit;cursor:pointer}
+.opt .v{font-size:12px;font-weight:600}
+.opt .l{font-size:12px;color:var(--ink-3)}
+.opt svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.opt.lit svg .f{fill:currentColor}
+.opt.sel{background:var(--ink);color:#fff}
+.opt.sel .l{color:rgba(255,255,255,.7)}
+.opt:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 /* PIN screen */
-.pinrow{display:flex;gap:10px;margin-top:22px}
-input{flex:1;min-width:0;width:100%;font:inherit;font-size:22px;letter-spacing:.3em;text-align:center;color:#fff;
-  padding:14px;border-radius:999px;border:1px solid var(--edge);background:var(--glass);outline:none}
-input:focus{border-color:#fff}
-.go{width:56px;height:56px;border-radius:50%;border:0;background:#fff;color:#2a2523;font-size:22px;cursor:pointer}
+.pin{display:flex;align-items:flex-end;gap:14px}
+.pin input{flex:1;min-width:0;width:100%;border:0;border-bottom:3px solid var(--line);border-radius:0;background:transparent;
+  font:700 64px Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--ink);padding:0 0 6px;outline:none}
+.pin input::placeholder{color:rgba(22,22,22,.18)}
+.go{flex:0 0 56px;height:56px;border-radius:50%;border:0;background:var(--ink);color:#fff;font-size:22px;cursor:pointer;margin-bottom:8px}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<div class="sky"></div>
+<div class="glow"></div><div class="grain"></div>
 
-<section class="card" id="lock">
-  <h1>Suite heat</h1>
-  <p class="sub">Enter the PIN you were given.</p>
-  <form class="pinrow" onsubmit="go(event)">
-    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN">
+<main class="screen" id="lock">
+  <header><div><p class="when" data-now></p><p class="where">Suite heat</p></div></header>
+  <div class="spacer"></div>
+  <form class="pin" onsubmit="go(event)">
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN">
     <button class="go" aria-label="Unlock">&rarr;</button>
   </form>
-  <div id="msg1" class="sub" style="color:#ffd7c2;margin-top:14px"></div>
-</section>
+  <p class="state" style="margin-top:14px">Enter your PIN</p>
+  <p class="note err" id="msg1"></p>
+</main>
 
-<section class="card" id="main" hidden>
-  <h1>Suite heat</h1>
-  <p class="sub" id="sub">Loading&hellip;</p>
+<main class="screen" id="main" hidden>
+  <header>
+    <div><p class="when" data-now></p><p class="where">Suite heat</p></div>
+    <button class="lockbtn" id="out" aria-label="Lock">
+      <svg width="28" height="20" viewBox="0 0 28 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2h24M2 10h24M2 18h24"/></svg>
+    </button>
+  </header>
+  <div class="spacer"></div>
 
-  <div class="dial" id="dial" role="slider" tabindex="0" aria-label="Heat setting" aria-valuemin="19" aria-valuemax="23">
-    <svg viewBox="0 0 300 250" aria-hidden="true">
-      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffc65c"/></linearGradient></defs>
-      <g id="dots"></g>
-      <path class="track" id="track"/>
-      <path class="fill" id="fill"/>
-      <text class="lim" id="lmin" text-anchor="middle"></text>
-      <text class="lim" id="lmax" text-anchor="middle"></text>
-      <circle class="knob" id="knob" r="11"/>
-    </svg>
-    <div class="hub"><div><div class="num" id="num">&ndash;</div><div class="cap">Heat set</div></div></div>
+  <div class="temp">
+    <div class="big" aria-label="Room temperature"><b id="room">&ndash;</b><span>&deg;C</span></div>
+    <div class="range"><span>&uarr;<span id="max">23</span>&deg;C</span><span>&darr;<span id="min">19</span>&deg;C</span></div>
   </div>
+  <div class="rule"></div>
+  <p class="state" id="state">Loading&hellip;</p>
+  <p class="note" id="note"></p>
 
-  <div class="status"><span class="pill" id="until"></span></div>
-
-  <div class="row">
-    <button class="btn" id="down" aria-label="Cooler"><i>&minus;</i>Cooler</button>
-    <button class="btn" id="up" aria-label="Warmer"><i>+</i>Warmer</button>
-  </div>
-  <div id="msg"></div>
-</section>
+  <div class="strip" id="strip" role="radiogroup" aria-label="Heat setting"></div>
+</main>
 
 <script>
 var pin = ""; try { pin = localStorage.getItem("pin") || ""; } catch (e) {}
-var S = { min: 19, max: 23, set: null }, shown = null, timer = null, dragging = false;
+var S = { min: 19, max: 23, set: null }, shown = null, timer = null;
 var $ = function (id) { return document.getElementById(id); };
-
-// Dial geometry: a 240 degree arc, angles measured clockwise from 12 o'clock.
-var CX = 150, CY = 150, R = 118, A0 = -120, A1 = 120;
-function pt(a, r) { var t = a * Math.PI / 180; return [CX + r * Math.sin(t), CY - r * Math.cos(t)]; }
-function arc(a, b) {
-  var p = pt(a, R), q = pt(b, R), big = (b - a) > 180 ? 1 : 0;
-  return "M" + p[0].toFixed(1) + " " + p[1].toFixed(1) + " A" + R + " " + R + " 0 " + big + " 1 " + q[0].toFixed(1) + " " + q[1].toFixed(1);
-}
-function angleOf(v) { return A0 + (v - S.min) / (S.max - S.min) * (A1 - A0); }
-function snap(v) { return Math.min(S.max, Math.max(S.min, Math.round(v * 2) / 2)); }
 function fmt(v) { return (Math.round(v * 10) / 10).toFixed(1); }
+function deg(v) { return (v % 1 ? fmt(v) : String(v)) + "\\u00b0"; }
 
-function buildDial() {
-  $("track").setAttribute("d", arc(A0, A1));
-  var g = $("dots"), html = "";
+// Header clock, like "11:30 am, Fri Jan 4"
+function tick() {
+  var d = new Date();
+  var t = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase();
+  var day = d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }).replace(",", "");
+  [].forEach.call(document.querySelectorAll("[data-now]"), function (el) { el.textContent = t + ", " + day; });
+}
+tick(); setInterval(tick, 15000);
+
+// Flame icon; the inner part fills in for settings at or below the chosen one.
+var FLAME = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.6 3.2 4.8 5.6 4.8 10.4A4.8 4.8 0 0 1 7.2 13c0-2.2 1.1-3.6 2.3-4.8.3 1.6 1 2.6 2 3.1C11 8.6 11 5.3 12 2.5Z"/><path class="f" d="M12 21.2a2.6 2.6 0 0 1-2.6-2.6c0-1.6 1.4-2.4 2.6-4 1.2 1.6 2.6 2.4 2.6 4a2.6 2.6 0 0 1-2.6 2.6Z"/></svg>';
+
+function buildStrip() {
+  var html = "";
   for (var v = S.min; v <= S.max + 1e-9; v += 0.5) {
-    var p = pt(angleOf(v), R + 18), whole = Math.abs(v - Math.round(v)) < 1e-9;
-    html += '<circle class="dot" data-v="' + v + '" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (whole ? 2.6 : 1.6) + '"/>';
+    var label = v === S.min ? "min" : v === S.max ? "max" : "";
+    html += '<button class="opt" role="radio" data-v="' + v + '" aria-label="' + fmt(v) + ' degrees">' +
+      '<span class="v">' + deg(v) + 'C</span>' + FLAME + '<span class="l">' + (label || "&nbsp;") + '</span></button>';
   }
-  g.innerHTML = html;
-  var a = pt(A0, R + 4), b = pt(A1, R + 4);
-  $("lmin").setAttribute("x", a[0] - 4); $("lmin").setAttribute("y", a[1] + 26); $("lmin").textContent = S.min + "\\u00b0";
-  $("lmax").setAttribute("x", b[0] + 4); $("lmax").setAttribute("y", b[1] + 26); $("lmax").textContent = S.max + "\\u00b0";
-  $("dial").setAttribute("aria-valuemin", S.min); $("dial").setAttribute("aria-valuemax", S.max);
+  $("strip").innerHTML = html;
+  $("min").textContent = S.min; $("max").textContent = S.max;
 }
 
 function draw(v) {
   shown = v;
-  var a = angleOf(v), k = pt(a, R);
-  $("fill").setAttribute("d", v > S.min ? arc(A0, a) : "");
-  $("knob").setAttribute("cx", k[0]); $("knob").setAttribute("cy", k[1]);
-  var whole = Math.floor(v), half = v - whole >= 0.5;
-  $("num").innerHTML = whole + "<small>" + (half ? ".5" : "") + "\\u00b0</small>";
-  [].forEach.call(document.querySelectorAll(".dot"), function (d) { d.classList.toggle("on", Number(d.dataset.v) <= v); });
-  $("dial").setAttribute("aria-valuenow", v);
-  $("dial").setAttribute("aria-valuetext", fmt(v) + " degrees");
-  $("down").disabled = v <= S.min; $("up").disabled = v >= S.max;
+  var sel = null;
+  [].forEach.call(document.querySelectorAll(".opt"), function (b) {
+    var bv = Number(b.dataset.v), on = Math.abs(bv - v) < 1e-9;
+    b.classList.toggle("sel", on); b.classList.toggle("lit", bv <= v);
+    b.setAttribute("aria-checked", on); b.tabIndex = on ? 0 : -1;
+    if (on) { b.querySelector(".l").textContent = "set"; sel = b; }
+    else b.querySelector(".l").innerHTML = bv === S.min ? "min" : bv === S.max ? "max" : "&nbsp;";
+  });
+  if (sel) sel.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  $("state").textContent = (S.hvac === "HEATING" ? "Heating to " : "Heat set to ") + deg(v);
   document.documentElement.style.setProperty("--warm", ((v - S.min) / (S.max - S.min)).toFixed(2));
 }
 
 function render(j) {
   var first = S.set === null;
   S = j;
-  if (first) buildDial();
-  if (!dragging && !timer) draw(j.set);
-  var parts = [];
-  if (j.room != null) parts.push("Room is " + fmt(j.room) + "\\u00b0");
-  if (j.hvac === "HEATING") parts.push("heating now");
-  $("sub").textContent = parts.join(" \\u00b7 ") || "Connected";
-  $("until").innerHTML = j.until
-    ? "&#9719; Back to normal at " + new Date(j.until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-    : "";
+  if (first) buildStrip();
+  $("room").textContent = j.room == null ? "\\u2013" : Math.round(j.room);
+  if (!timer) draw(j.set);
+  var n = $("note"); n.classList.remove("err");
+  n.textContent = j.until
+    ? "Back to normal at " + new Date(j.until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase()
+    : "Tap a setting below to change it";
 }
 
 function showLock(text) { $("lock").hidden = false; $("main").hidden = true; $("msg1").textContent = text || ""; }
+function showErr(text) { var n = $("note"); n.textContent = text; n.classList.add("err"); }
 
 function call(path, extra) {
   var body = { pin: pin }; for (var k in extra || {}) body[k] = extra[k];
@@ -186,47 +175,36 @@ function call(path, extra) {
       if (r.status === 401 || r.status === 429) { try { localStorage.removeItem("pin"); } catch (e) {} showLock(j.error); return; }
       $("lock").hidden = true; $("main").hidden = false;
       try { localStorage.setItem("pin", pin); } catch (e) {}
-      if (j.error) { $("msg").textContent = j.error; if (S.set !== null) draw(S.set); return; }
-      $("msg").textContent = "";
+      if (j.error) { if (S.set !== null) draw(S.set); showErr(j.error); return; }
       render(j);
     })
-    .catch(function () { $("msg").textContent = "No connection. Try again."; });
+    .catch(function () { showErr("No connection. Try again."); });
 }
 
-// Wait until the tenant stops fiddling, then send one change.
+// Wait a moment so a few quick taps send only one change.
 function choose(v) {
-  v = snap(v);
+  v = Math.min(S.max, Math.max(S.min, Math.round(v * 2) / 2));
   if (v === shown) return;
   draw(v);
   clearTimeout(timer);
   timer = setTimeout(function () { timer = null; call("/api/set", { target: v }); }, 700);
 }
 
-function fromPointer(e) {
-  var box = $("dial").getBoundingClientRect(), s = box.width / 300;
-  var x = (e.clientX - box.left) / s - CX, y = (e.clientY - box.top) / s - CY;
-  var a = Math.atan2(x, -y) * 180 / Math.PI;
-  // Below the arc: snap to whichever end is nearer.
-  if (a > A1) a = A1; else if (a < A0) a = A0;
-  return S.min + (a - A0) / (A1 - A0) * (S.max - S.min);
-}
-var dial = $("dial");
-dial.addEventListener("pointerdown", function (e) { if (S.set === null) return; dragging = true; dial.setPointerCapture(e.pointerId); choose(fromPointer(e)); });
-dial.addEventListener("pointermove", function (e) { if (dragging) choose(fromPointer(e)); });
-dial.addEventListener("pointerup", function () { dragging = false; });
-dial.addEventListener("pointercancel", function () { dragging = false; });
-dial.addEventListener("keydown", function (e) {
+$("strip").addEventListener("click", function (e) {
+  var b = e.target.closest(".opt"); if (b) choose(Number(b.dataset.v));
+});
+$("strip").addEventListener("keydown", function (e) {
   if (shown === null) return;
   if (e.key === "ArrowRight" || e.key === "ArrowUp") { choose(shown + 0.5); e.preventDefault(); }
   if (e.key === "ArrowLeft" || e.key === "ArrowDown") { choose(shown - 0.5); e.preventDefault(); }
+  var s = document.querySelector(".opt.sel"); if (s) s.focus();
 });
-$("up").onclick = function () { if (shown !== null) choose(shown + 0.5); };
-$("down").onclick = function () { if (shown !== null) choose(shown - 0.5); };
+$("out").onclick = function () { pin = ""; try { localStorage.removeItem("pin"); } catch (e) {} $("pin").value = ""; showLock(); };
 
 function go(e) { e.preventDefault(); pin = $("pin").value.trim(); if (pin) call("/api/status"); }
 if (pin) call("/api/status"); else showLock();
 // Keep the reading fresh while the page is open.
-setInterval(function () { if (pin && !$("main").hidden && !document.hidden && !timer && !dragging) call("/api/status"); }, 60000);
+setInterval(function () { if (pin && !$("main").hidden && !document.hidden && !timer) call("/api/status"); }, 60000);
 </script>
 </body>
 </html>`;
